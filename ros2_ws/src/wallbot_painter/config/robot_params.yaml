@@ -1,0 +1,34 @@
+# WallBot Painter — Robot Parameters
+# All SI units unless stated otherwise
+
+wallbot_painter:
+  ros__parameters:
+
+    # ---- Navigation ----
+    surface_width: 2.0          # metres — painted surface width
+    surface_height: 3.0         # metres — painted surface height
+    max_linear_speed: 0.15      # m/s
+    max_angular_speed: 0.5      # rad/s
+
+    # ---- Motor Controller ----
+    wheel_radius: 0.05          # metres
+    wheel_base: 0.30            # metres (track width between left and right wheels)
+    max_rpm: 300.0
+    encoder_ticks_per_rev: 4096
+
+    # ---- IMU Slip Controller ----
+    slip_threshold: 0.15        # 15 % slip ratio
+    imu_topic: "imu/data"
+    correction_gain: 0.8
+
+    # ---- Painting Controller ----
+    nominal_speed: 0.10         # m/s — speed at which duty = coverage_gain
+    coverage_gain: 1.0
+    min_duty: 0.05              # minimum spray duty when moving
+    speed_deadband: 0.005       # m/s — below this speed, spray is off
+
+    # ---- Safety Monitor ----
+    rth_voltage: 14.4           # V — 4S LiPo ≈ 20 % remaining
+    critical_voltage: 13.2      # V — 4S LiPo ≈ 5 % remaining
+    slip_fault_timeout: 3.0     # seconds of continuous slip before emergency stop
+    nominal_voltage: 16.8       # V — 4S LiPo fully charged
