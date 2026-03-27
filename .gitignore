@@ -1,0 +1,23 @@
+# Python byte-code cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# pytest cache
+.pytest_cache/
+
+# ROS 2 build/install artefacts
+ros2_ws/build/
+ros2_ws/install/
+ros2_ws/log/
+
+# ESP-IDF build artefacts
+esp32_firmware/build/
+esp32_firmware/managed_components/
+esp32_firmware/sdkconfig
+esp32_firmware/sdkconfig.old
+
+# OS artefacts
+.DS_Store
+Thumbs.db
