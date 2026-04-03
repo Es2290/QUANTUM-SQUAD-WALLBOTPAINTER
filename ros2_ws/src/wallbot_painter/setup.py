@@ -28,9 +28,11 @@ setup(
         'console_scripts': [
             'navigation_node = wallbot_painter.navigation_node:main',
             'motor_controller = wallbot_painter.motor_controller:main',
+            'uart_bridge = wallbot_painter.uart_bridge:main',
             'imu_slip_controller = wallbot_painter.imu_slip_controller:main',
             'painting_controller = wallbot_painter.painting_controller:main',
             'safety_monitor = wallbot_painter.safety_monitor:main',
+            'teleop_node = wallbot_painter.teleop_node:main',
         ],
     },
 )

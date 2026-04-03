@@ -1,0 +1,23 @@
+/**:
+  ros__parameters:
+    # UART Bridge configuration
+    uart_bridge:
+      port: '/dev/ttyUSB0'        # Serial port (adjust for your system)
+      baudrate: 921600            # Baud rate must match ESP32 firmware
+      timeout: 1.0                # Serial read/write timeout (seconds)
+    
+    # Motor Controller configuration (used together with uart_bridge)
+    motor_controller:
+      wheel_radius: 0.05          # metres
+      wheel_base: 0.30            # metres (track width between left/right wheels)
+      max_rpm: 300.0              # Maximum motor RPM
+      encoder_ticks_per_rev: 4096 # Encoder resolution
+      
+      # PID gains for closed-loop speed control
+      pid_kp: 0.05                # Proportional gain
+      pid_ki: 0.01                # Integral gain
+      pid_kd: 0.005               # Derivative gain
+      
+      # Odometry covariance
+      odom_pos_cov: 0.01          # Position covariance (m²)
+      odom_rot_cov: 0.05          # Rotation covariance (rad²)
