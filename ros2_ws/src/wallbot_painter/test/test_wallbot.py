@@ -168,6 +168,8 @@ def _make_rclpy_stub() -> None:
         msg_mod.Odometry = Odometry
         msg_mod.PoseStamped = PoseStamped
         msg_mod.Imu = Imu
+        msg_mod.Quaternion = _Quat
+        msg_mod.Quaternion = _Quat
 
         mod.msg = msg_mod
         sys.modules[pkg] = mod

@@ -56,5 +56,5 @@
   "C_Cpp_Runner.showCompilationTime": false,
   "C_Cpp_Runner.useLinkTimeOptimization": false,
   "C_Cpp_Runner.msvcSecureNoWarnings": false,
-  "cmake.sourceDirectory": "/home/david-bocossa/Quantum_squad/Wallbot_painter/QUANTUM-SQUAD-WALLBOTPAINTER/esp32_firmware"
+  "cmake.sourceDirectory": "/home/davbks/QUANTUM-SQUAD-WALLBOTPAINTER/esp32_firmware/main"
 }

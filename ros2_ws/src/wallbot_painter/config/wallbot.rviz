@@ -1,0 +1,70 @@
+Panels:
+  - Class: rviz_common/Displays
+    Name: Displays
+  - Class: rviz_common/Views
+    Name: Views
+Visualization Manager:
+  Class: ""
+  Displays:
+    - Class: rviz_default_plugins/Grid
+      Name: Grid
+      Enabled: true
+      Plane Cell Count: 20
+      Cell Size: 0.25
+      Reference Frame: odom
+    - Class: rviz_default_plugins/TF
+      Name: TF
+      Enabled: true
+      Show Names: true
+      Show Axes: true
+      Show Arrows: false
+    - Class: rviz_default_plugins/RobotModel
+      Name: RobotModel
+      Enabled: true
+      Description Topic:
+        Value: /robot_description
+      TF Prefix: ""
+    - Class: rviz_default_plugins/Odometry
+      Name: Odometry (trail)
+      Enabled: true
+      Topic:
+        Value: /odom
+      Position Tolerance: 0.01
+      Angle Tolerance: 0.05
+      Keep: 500
+      Shape:
+        Value: Arrow
+        Alpha: 1
+        Axes Length: 0.1
+        Color: 255; 170; 0
+      Covariance:
+        Position:
+          Value: false
+        Orientation:
+          Value: false
+    - Class: rviz_default_plugins/Pose
+      Name: Current Waypoint
+      Enabled: true
+      Topic:
+        Value: /current_waypoint
+      Shape: Arrow
+      Color: 0; 255; 0
+      Alpha: 1
+  Global Options:
+    Background Color: 48; 48; 48
+    Fixed Frame: odom
+    Frame Rate: 30
+  Views:
+    Current:
+      Class: rviz_default_plugins/Orbit
+      Name: Current View
+      Distance: 4
+      Focal Point:
+        X: 1
+        Y: 1.5
+        Z: 0
+      Yaw: 0.78
+      Pitch: 0.6
+Window Geometry:
+  Height: 900
+  Width: 1400

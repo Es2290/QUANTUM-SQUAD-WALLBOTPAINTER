@@ -16,6 +16,10 @@ setup(
          glob('launch/*.launch.py')),
         (os.path.join('share', package_name, 'config'),
          glob('config/*.yaml')),
+        (os.path.join('share', package_name, 'config'),
+         glob('config/*.rviz')),
+        (os.path.join('share', package_name, 'urdf'),
+         glob('urdf/*.urdf')),
     ],
     install_requires=['setuptools'],
     zip_safe=True,
@@ -33,6 +37,7 @@ setup(
             'painting_controller = wallbot_painter.painting_controller:main',
             'safety_monitor = wallbot_painter.safety_monitor:main',
             'teleop_node = wallbot_painter.teleop_node:main',
+            'hardware_simulator = wallbot_painter.hardware_simulator:main',
         ],
     },
 )
