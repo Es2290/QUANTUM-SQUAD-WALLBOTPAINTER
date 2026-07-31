@@ -1,0 +1,144 @@
+<?xml version="1.0"?>
+<!--
+  WallBot Painter — Gazebo-ready URDF (Session 1)
+
+  Default physical assumptions (adjust once real CAD data is available):
+    - Total mass ~5 kg (4.2 kg chassis + 4 × 0.2 kg wheels)
+    - Chassis: 0.40 × 0.40 × 0.15 m box
+    - Wheels: 4 × cylinders, radius 0.05 m, width 0.04 m
+    - Wheel base (left-right): 0.30 m — matches robot_params.yaml
+    - Wheel track (front-rear): 0.30 m
+
+  No adhesion plugin yet — this is a plain URDF to validate physics
+  (mass, inertia, collisions) under normal gravity on a flat floor.
+-->
+<robot name="spider_v2">
+
+  <material name="orange"><color rgba="1.0 0.5 0.0 1.0"/></material>
+  <material name="dark_grey"><color rgba="0.2 0.2 0.2 1.0"/></material>
+
+  <!-- ============================ CHASSIS ============================ -->
+  <link name="base_link">
+    <visual>
+      <geometry><box size="0.4 0.4 0.15"/></geometry>
+      <material name="orange"/>
+    </visual>
+    <collision>
+      <geometry><box size="0.4 0.4 0.15"/></geometry>
+    </collision>
+    <inertial>
+      <mass value="4.2"/>
+      <inertia ixx="0.063875" ixy="0" ixz="0"
+               iyy="0.063875" iyz="0"
+               izz="0.112"/>
+    </inertial>
+  </link>
+
+  <!-- ============================ WHEELS ============================ -->
+  <!-- Macro-like repetition (plain URDF — no xacro dependency for now) -->
+
+  <!-- Front-Left -->
+  <link name="wheel_fl">
+    <visual>
+      <origin rpy="1.5708 0 0" xyz="0 0 0"/>
+      <geometry><cylinder radius="0.05" length="0.04"/></geometry>
+      <material name="dark_grey"/>
+    </visual>
+    <collision>
+      <origin rpy="1.5708 0 0" xyz="0 0 0"/>
+      <geometry><cylinder radius="0.05" length="0.04"/></geometry>
+    </collision>
+    <inertial>
+      <origin rpy="1.5708 0 0" xyz="0 0 0"/>
+      <mass value="0.2"/>
+      <inertia ixx="0.0001517" ixy="0" ixz="0"
+               iyy="0.0001517" iyz="0"
+               izz="0.00025"/>
+    </inertial>
+  </link>
+  <joint name="wheel_fl_joint" type="continuous">
+    <parent link="base_link"/>
+    <child link="wheel_fl"/>
+    <origin xyz="0.15 0.15 -0.075" rpy="0 0 0"/>
+    <axis xyz="0 1 0"/>
+  </joint>
+
+  <!-- Front-Right -->
+  <link name="wheel_fr">
+    <visual>
+      <origin rpy="1.5708 0 0" xyz="0 0 0"/>
+      <geometry><cylinder radius="0.05" length="0.04"/></geometry>
+      <material name="dark_grey"/>
+    </visual>
+    <collision>
+      <origin rpy="1.5708 0 0" xyz="0 0 0"/>
+      <geometry><cylinder radius="0.05" length="0.04"/></geometry>
+    </collision>
+    <inertial>
+      <origin rpy="1.5708 0 0" xyz="0 0 0"/>
+      <mass value="0.2"/>
+      <inertia ixx="0.0001517" ixy="0" ixz="0"
+               iyy="0.0001517" iyz="0"
+               izz="0.00025"/>
+    </inertial>
+  </link>
+  <joint name="wheel_fr_joint" type="continuous">
+    <parent link="base_link"/>
+    <child link="wheel_fr"/>
+    <origin xyz="0.15 -0.15 -0.075" rpy="0 0 0"/>
+    <axis xyz="0 1 0"/>
+  </joint>
+
+  <!-- Rear-Left -->
+  <link name="wheel_rl">
+    <visual>
+      <origin rpy="1.5708 0 0" xyz="0 0 0"/>
+      <geometry><cylinder radius="0.05" length="0.04"/></geometry>
+      <material name="dark_grey"/>
+    </visual>
+    <collision>
+      <origin rpy="1.5708 0 0" xyz="0 0 0"/>
+      <geometry><cylinder radius="0.05" length="0.04"/></geometry>
+    </collision>
+    <inertial>
+      <origin rpy="1.5708 0 0" xyz="0 0 0"/>
+      <mass value="0.2"/>
+      <inertia ixx="0.0001517" ixy="0" ixz="0"
+               iyy="0.0001517" iyz="0"
+               izz="0.00025"/>
+    </inertial>
+  </link>
+  <joint name="wheel_rl_joint" type="continuous">
+    <parent link="base_link"/>
+    <child link="wheel_rl"/>
+    <origin xyz="-0.15 0.15 -0.075" rpy="0 0 0"/>
+    <axis xyz="0 1 0"/>
+  </joint>
+
+  <!-- Rear-Right -->
+  <link name="wheel_rr">
+    <visual>
+      <origin rpy="1.5708 0 0" xyz="0 0 0"/>
+      <geometry><cylinder radius="0.05" length="0.04"/></geometry>
+      <material name="dark_grey"/>
+    </visual>
+    <collision>
+      <origin rpy="1.5708 0 0" xyz="0 0 0"/>
+      <geometry><cylinder radius="0.05" length="0.04"/></geometry>
+    </collision>
+    <inertial>
+      <origin rpy="1.5708 0 0" xyz="0 0 0"/>
+      <mass value="0.2"/>
+      <inertia ixx="0.0001517" ixy="0" ixz="0"
+               iyy="0.0001517" iyz="0"
+               izz="0.00025"/>
+    </inertial>
+  </link>
+  <joint name="wheel_rr_joint" type="continuous">
+    <parent link="base_link"/>
+    <child link="wheel_rr"/>
+    <origin xyz="-0.15 -0.15 -0.075" rpy="0 0 0"/>
+    <axis xyz="0 1 0"/>
+  </joint>
+
+</robot>
