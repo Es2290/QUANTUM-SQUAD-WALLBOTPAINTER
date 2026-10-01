@@ -56,5 +56,22 @@
   "C_Cpp_Runner.showCompilationTime": false,
   "C_Cpp_Runner.useLinkTimeOptimization": false,
   "C_Cpp_Runner.msvcSecureNoWarnings": false,
-  "cmake.sourceDirectory": "/home/davbks/QUANTUM-SQUAD-WALLBOTPAINTER/esp32_firmware/main"
+  "cmake.sourceDirectory": "/home/davbks/QUANTUM-SQUAD-WALLBOTPAINTER/esp32_firmware/main",
+  "ROS2.distro": "jazzy",
+  "python.autoComplete.extraPaths": [
+    "/opt/ros/jazzy/opt/gz_sim_vendor/lib/python",
+    "/opt/ros/jazzy/opt/sdformat_vendor/lib/python",
+    "/opt/ros/jazzy/opt/gz_transport_vendor/lib/python",
+    "/opt/ros/jazzy/opt/gz_msgs_vendor/lib/python",
+    "/opt/ros/jazzy/opt/gz_math_vendor/lib/python",
+    "/opt/ros/jazzy/lib/python3.12/site-packages"
+  ],
+  "python.analysis.extraPaths": [
+    "/opt/ros/jazzy/opt/gz_sim_vendor/lib/python",
+    "/opt/ros/jazzy/opt/sdformat_vendor/lib/python",
+    "/opt/ros/jazzy/opt/gz_transport_vendor/lib/python",
+    "/opt/ros/jazzy/opt/gz_msgs_vendor/lib/python",
+    "/opt/ros/jazzy/opt/gz_math_vendor/lib/python",
+    "/opt/ros/jazzy/lib/python3.12/site-packages"
+  ]
 }
