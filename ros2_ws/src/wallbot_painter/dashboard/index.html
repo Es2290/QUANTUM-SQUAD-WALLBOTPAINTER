@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>WallBot Command Center</title>
+  <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+  <style>
+    :root { color-scheme: dark; --bg:#10141e; --panel:#181f2d; --muted:#8e9ab3; --cyan:#5ce1e6; --red:#ff667a; --green:#66e3a4; }
+    * { box-sizing:border-box } body { margin:0; min-height:100vh; font:15px system-ui,sans-serif; color:#eef3ff; background:radial-gradient(circle at 75% -10%,#263c59,var(--bg) 55%); }
+    main { max-width:1180px; margin:auto; padding:32px 22px } header { display:flex; justify-content:space-between; align-items:center; gap:16px; margin-bottom:28px }
+    h1 { margin:0; font-size:clamp(25px,4vw,40px); letter-spacing:-1px } .eyebrow { color:var(--cyan); text-transform:uppercase; letter-spacing:2px; font-size:11px; font-weight:700 }
+    .connection { color:var(--muted); display:flex; align-items:center; gap:8px } .dot { width:10px; height:10px; border-radius:50%; background:var(--red); box-shadow:0 0 14px var(--red) } .dot.online { background:var(--green); box-shadow:0 0 14px var(--green) }
+    .grid { display:grid; grid-template-columns:repeat(4,1fr); gap:16px } .card { background:linear-gradient(145deg,#1c2535,var(--panel)); border:1px solid #2a3548; border-radius:18px; padding:20px; box-shadow:0 12px 30px #080b1266 } .wide { grid-column:span 2 }
+    .label { color:var(--muted); font-size:12px; text-transform:uppercase; letter-spacing:1px } .value { font-size:31px; margin-top:12px; font-weight:700 } .unit { color:var(--muted); font-size:14px; font-weight:400 }
+    .bar { height:8px; border-radius:8px; background:#303b50; margin-top:18px; overflow:hidden } .bar span { display:block; height:100%; width:0; background:linear-gradient(90deg,var(--cyan),var(--green)); transition:width .4s }
+    .status { display:inline-flex; margin-top:13px; padding:6px 10px; border-radius:999px; background:#29354a; color:var(--muted); font-size:12px } .status.good { color:var(--green); background:#163b36 } .status.bad { color:var(--red); background:#482633 }
+    .actions { display:flex; flex-wrap:wrap; gap:10px; margin-top:18px } button { border:0; border-radius:10px; padding:11px 15px; color:white; background:#2d3c56; cursor:pointer; font-weight:650 } button:hover { filter:brightness(1.2) } button.danger { background:#a83d54 } button.primary { background:#277f83 }
+    .config { color:var(--muted); font-size:12px; margin-top:16px } input { width:100%; margin-top:8px; padding:9px; border-radius:8px; border:1px solid #34445d; color:white; background:#101621 }
+    @media(max-width:800px){ .grid{grid-template-columns:repeat(2,1fr)} .wide{grid-column:span 2} } @media(max-width:500px){ .grid{grid-template-columns:1fr} .wide{grid-column:span 1} header{align-items:flex-start; flex-direction:column} }
+  </style>
+</head>
+<body><main>
+  <header><div><div class="eyebrow">Quantum Squad / Live telemetry</div><h1>WallBot Command Center</h1></div><div class="connection"><span id="dot" class="dot"></span><span id="connection">Disconnected</span></div></header>
+  <section class="grid">
+    <article class="card"><div class="label">Battery</div><div id="battery" class="value">-- <span class="unit">V</span></div><div class="bar"><span id="batteryBar"></span></div><div id="batteryStatus" class="status">Waiting for telemetry</div></article>
+    <article class="card"><div class="label">Drive speed</div><div id="speed" class="value">-- <span class="unit">m/s</span></div><div id="direction" class="status">No odometry</div></article>
+    <article class="card"><div class="label">Safety</div><div id="safety" class="value">--</div><div id="safetyStatus" class="status">Unknown</div></article>
+    <article class="card"><div class="label">Painting</div><div id="painting" class="value">--</div><div id="paintingStatus" class="status">Unknown</div></article>
+    <article class="card wide"><div class="label">Live controls</div><div class="actions"><button class="danger" id="estop">Emergency stop</button><button id="paintOn">Enable painting</button><button id="paintOff">Disable painting</button></div><div class="config">Emergency stop is latched by the ROS 2 safety monitor and requires a local reset procedure.</div></article>
+    <article class="card wide"><div class="label">MQTT connection</div><input id="broker" value="ws://localhost:9001/mqtt" aria-label="MQTT WebSocket broker URL"><div class="config">Set this to your broker's WebSocket endpoint, then reload.</div></article>
+  </section>
+</main>
+<script>
+  const $ = id => document.getElementById(id), broker = localStorage.getItem('wallbotBroker') || $('broker').value;
+  $('broker').value = broker; $('broker').addEventListener('change', e => localStorage.setItem('wallbotBroker', e.target.value));
+  const client = mqtt.connect(broker, { reconnectPeriod: 3000, clientId: 'wallbot-dashboard-' + Math.random().toString(16).slice(2) });
+  const command = (name, enabled) => client.publish('wallbot/command/' + name, JSON.stringify({enabled}), {qos:1});
+  $('estop').onclick=()=>command('estop',true); $('paintOn').onclick=()=>command('painting',true); $('paintOff').onclick=()=>command('painting',false);
+  client.on('connect', () => { $('dot').classList.add('online'); $('connection').textContent='Connected'; client.subscribe('wallbot/telemetry'); });
+  client.on('close', () => { $('dot').classList.remove('online'); $('connection').textContent='Disconnected'; });
+  client.on('message', (_, payload) => { const s=JSON.parse(payload); const pct=s.battery_percent ?? 0; $('battery').innerHTML=(s.battery_voltage ?? '--').toFixed ? s.battery_voltage.toFixed(2)+' <span class="unit">V</span>' : '-- <span class="unit">V</span>'; $('batteryBar').style.width=pct+'%'; $('batteryStatus').textContent=pct.toFixed(0)+'% charge'; $('speed').innerHTML=(s.velocity?.linear_x ?? 0).toFixed(2)+' <span class="unit">m/s</span>'; $('direction').textContent=(s.velocity?.angular_z ?? 0).toFixed(2)+' rad/s yaw'; $('safety').textContent=s.estop?'STOP':'READY'; $('safetyStatus').textContent=s.slip_detected?'Slip detected':'All systems nominal'; $('safetyStatus').className='status '+(s.estop||s.slip_detected?'bad':'good'); $('painting').textContent=s.painting_active?'ON':'OFF'; $('paintingStatus').textContent=s.painting_active?'Spraying':'Standby'; $('paintingStatus').className='status '+(s.painting_active?'good':''); });
+</script></body></html>

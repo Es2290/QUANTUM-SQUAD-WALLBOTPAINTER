@@ -13,6 +13,7 @@ Protocol:
   
   Incoming (ESP32 → Raspberry Pi):
     "ENC <t0>,<t1>,<t2>,<t3>\r\n"  — encoder ticks at 1 kHz
+    "STAT <free_heap>,<uptime_s>\r\n" — FreeRTOS health at 1 Hz
 """
 
 import threading
@@ -63,6 +64,9 @@ class UARTBridge(Node):
         # ---------- Publishers ----------
         self._encoder_pub = self.create_publisher(
             Int32MultiArray, 'encoder_ticks', 10
+        )
+        self._freertos_pub = self.create_publisher(
+            Float32MultiArray, 'freertos_status', 10
         )
 
         # ---------- Subscribers ----------
@@ -135,6 +139,8 @@ class UARTBridge(Node):
 
                         if line.startswith('ENC '):
                             self._parse_encoder_line(line)
+                        elif line.startswith('STAT '):
+                            self._parse_status_line(line)
 
             except (serial.SerialException, OSError) as e:
                 self.get_logger().error(f'Serial read error: {e}')
@@ -162,6 +168,18 @@ class UARTBridge(Node):
 
         except ValueError as e:
             self.get_logger().warn(f'Failed to parse encoder line "{line}": {e}')
+
+    def _parse_status_line(self, line: str) -> None:
+        """Parse 'STAT free_heap,uptime_s' and publish diagnostics."""
+        try:
+            parts = line[5:].split(',')
+            if len(parts) != 2:
+                raise ValueError('expected free heap and uptime')
+            msg = Float32MultiArray()
+            msg.data = [float(parts[0]), float(parts[1])]
+            self._freertos_pub.publish(msg)
+        except ValueError as e:
+            self.get_logger().warn(f'Failed to parse status line "{line}": {e}')
 
     # ------------------------------------------------------------------
     # Cleanup

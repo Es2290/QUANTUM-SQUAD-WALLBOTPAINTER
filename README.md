@@ -76,6 +76,25 @@ source install/setup.bash
 ros2 launch wallbot_painter wallbot.launch.py
 ```
 
+### MQTT dashboard
+
+The ROS 2 gateway publishes a retained JSON snapshot on
+`wallbot/telemetry` and accepts `{"enabled": true|false}` commands on
+`wallbot/command/estop` and `wallbot/command/painting`. Commands are always
+forwarded through the existing ROS safety topics.
+
+Install the MQTT client and start a broker with WebSockets enabled:
+
+```bash
+python3 -m pip install paho-mqtt
+ros2 launch wallbot_painter wallbot.launch.py enable_mqtt:=true mqtt_host:=localhost mqtt_port:=1883
+```
+
+Open the installed `dashboard/index.html` in a browser and set its WebSocket
+broker URL (for example `ws://localhost:9001/mqtt`). The browser uses MQTT
+over WebSockets, so the broker must expose a WebSocket listener separately
+from its TCP listener.
+
 ### Firmware ESP32
 
 ```bash

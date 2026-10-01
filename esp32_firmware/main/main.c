@@ -28,6 +28,8 @@
 #include "freertos/queue.h"
 
 #include "esp_log.h"
+#include "esp_timer.h"
+#include "esp_system.h"
 #include "driver/uart.h"
 #include "driver/ledc.h"
 
@@ -61,6 +63,22 @@
 
 static QueueHandle_t s_motor_queue;    /* float[MOTOR_COUNT] RPM set-points */
 static QueueHandle_t s_spray_queue;   /* float duty [0.0, 1.0] */
+
+/* Low-rate health frame consumed by the ROS gateway. */
+static void status_task(void *arg)
+{
+    while (1) {
+        uint32_t uptime_s = (uint32_t)(esp_timer_get_time() / 1000000ULL);
+        char frame[64];
+        int len = snprintf(frame, sizeof(frame), "STAT %lu,%lu\r\n",
+                           (unsigned long)esp_get_free_heap_size(),
+                           (unsigned long)uptime_s);
+        if (len > 0 && (size_t)len < sizeof(frame)) {
+            uart_write_bytes(COMMS_UART, frame, (size_t)len);
+        }
+        vTaskDelay(pdMS_TO_TICKS(1000));
+    }
+}
 
 /* -------------------------------------------------------------------------
  * Encoder task — 1 kHz
@@ -245,6 +263,7 @@ void app_main(void)
     xTaskCreatePinnedToCore(motor_task,   "motor",   4096, NULL, 4, NULL, 1);
     xTaskCreatePinnedToCore(spray_task,   "spray",   2048, NULL, 3, NULL, 0);
     xTaskCreatePinnedToCore(comms_task,   "comms",   8192, NULL, 2, NULL, 0);
+    xTaskCreatePinnedToCore(status_task,  "status",  2048, NULL, 1, NULL, 0);
 
     ESP_LOGI(TAG, "All tasks started.");
 }

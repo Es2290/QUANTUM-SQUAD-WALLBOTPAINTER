@@ -22,6 +22,8 @@ setup(
          glob('urdf/*.urdf')),
         (os.path.join('share', package_name, 'worlds'),
          glob('worlds/*.sdf')),
+        (os.path.join('share', package_name, 'dashboard'),
+         glob('dashboard/*')),
     ],
     install_requires=['setuptools'],
     zip_safe=True,
@@ -40,6 +42,7 @@ setup(
             'safety_monitor = wallbot_painter.safety_monitor:main',
             'teleop_node = wallbot_painter.teleop_node:main',
             'hardware_simulator = wallbot_painter.hardware_simulator:main',
+            'mqtt_dashboard = wallbot_painter.mqtt_dashboard:main',
         ],
     },
 )
