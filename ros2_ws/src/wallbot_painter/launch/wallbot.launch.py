@@ -27,6 +27,12 @@ def generate_launch_description() -> LaunchDescription:
         DeclareLaunchArgument('mqtt_host', default_value='localhost'),
         DeclareLaunchArgument('mqtt_port', default_value='1883'),
         DeclareLaunchArgument('robot_id', default_value='wallbot'),
+        DeclareLaunchArgument(
+            'enable_uart', default_value='false',
+            description='Start the ESP32 UART bridge for physical hardware'
+        ),
+        DeclareLaunchArgument('uart_port', default_value='/dev/ttyUSB0'),
+        DeclareLaunchArgument('uart_baudrate', default_value='921600'),
 
         Node(
             package='wallbot_painter',
@@ -65,6 +71,18 @@ def generate_launch_description() -> LaunchDescription:
             executable='safety_monitor',
             name='safety_monitor',
             parameters=[config, {'use_sim_time': LaunchConfiguration('use_sim_time')}],
+            output='screen',
+        ),
+
+        Node(
+            package='wallbot_painter',
+            executable='uart_bridge',
+            name='uart_bridge',
+            parameters=[{
+                'port': LaunchConfiguration('uart_port'),
+                'baudrate': LaunchConfiguration('uart_baudrate'),
+            }],
+            condition=IfCondition(LaunchConfiguration('enable_uart')),
             output='screen',
         ),
 

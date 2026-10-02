@@ -19,7 +19,7 @@ from typing import Any, Dict, Optional
 import rclpy
 from nav_msgs.msg import Odometry
 from rclpy.node import Node
-from std_msgs.msg import Bool, Float32, Int32MultiArray
+from std_msgs.msg import Bool, Float32, Float32MultiArray, Int32MultiArray
 
 try:
     import paho.mqtt.client as mqtt
@@ -42,7 +42,7 @@ class MqttDashboard(Node):
         self._robot_id = str(self.get_parameter('robot_id').value)
         self._root_topic = f'{self._robot_id}/'
         self._state: Dict[str, Any] = {
-            'online': True,
+            'online': False,
             'battery_voltage': None,
             'battery_percent': None,
             'slip_detected': False,
@@ -56,8 +56,8 @@ class MqttDashboard(Node):
         }
         self._lock = threading.Lock()
 
-        self._estop_pub = self.create_publisher(Bool, 'estop', 10)
-        self._painting_pub = self.create_publisher(Bool, 'painting_active', 10)
+        self._estop_request_pub = self.create_publisher(Bool, 'estop_request', 10)
+        self._painting_request_pub = self.create_publisher(Bool, 'painting_request', 10)
         self.create_subscription(Float32, 'battery_voltage', self._battery_cb, 10)
         self.create_subscription(Bool, 'slip_detected', self._slip_cb, 10)
         self.create_subscription(Bool, 'estop', self._estop_cb, 10)
@@ -74,20 +74,28 @@ class MqttDashboard(Node):
                 'Install it with: python3 -m pip install paho-mqtt'
             )
 
-        self._mqtt = mqtt.Client(
-            callback_api_version=mqtt.CallbackAPIVersion.VERSION2,
-            client_id=f'{self._robot_id}-ros2-gateway',
-        )
+        client_id = f'{self._robot_id}-ros2-gateway'
+        try:
+            self._mqtt = mqtt.Client(
+                callback_api_version=mqtt.CallbackAPIVersion.VERSION2,
+                client_id=client_id,
+            )
+        except AttributeError:
+            # Paho 1.x has no callback API selector.
+            self._mqtt = mqtt.Client(client_id=client_id)
         username = str(self.get_parameter('mqtt_username').value)
         if username:
             self._mqtt.username_pw_set(
                 username, str(self.get_parameter('mqtt_password').value)
             )
         self._mqtt.on_connect = self._on_connect
+        self._mqtt.on_disconnect = self._on_disconnect
         self._mqtt.on_message = self._on_message
         host = str(self.get_parameter('mqtt_host').value)
         port = int(self.get_parameter('mqtt_port').value)
-        self._mqtt.connect(host, port, keepalive=30)
+        # Do not prevent ROS from starting when the broker is temporarily down.
+        # Paho retries automatically while its network loop is running.
+        self._mqtt.connect_async(host, port, keepalive=30)
         self._mqtt.loop_start()
         period = 1.0 / max(float(self.get_parameter('publish_hz').value), 0.1)
         self._timer = self.create_timer(period, self._publish_telemetry)
@@ -97,11 +105,21 @@ class MqttDashboard(Node):
         if reason_code != 0:
             self.get_logger().error(f'MQTT connection failed: {reason_code}')
             return
-        client.subscribe(f'{self._root_topic}command/estop')
-        client.subscribe(f'{self._root_topic}command/painting')
+        self._update(online=True)
+        client.subscribe(f'{self._root_topic}command/estop', qos=1)
+        client.subscribe(f'{self._root_topic}command/painting', qos=1)
         self.get_logger().info('MQTT dashboard gateway connected.')
 
+    def _on_disconnect(self, client: Any, userdata: Any, *args: Any) -> None:
+        self._update(online=False)
+        # Paho 1.x passes only reason_code; 2.x also passes flags/properties.
+        reason_code = args[-2] if len(args) >= 2 else (args[0] if args else 'unknown')
+        self.get_logger().warning(f'MQTT disconnected: {reason_code}')
+
     def _on_message(self, client: Any, userdata: Any, msg: Any) -> None:
+        if getattr(msg, 'retain', False):
+            self.get_logger().warning('Ignoring retained MQTT control message.')
+            return
         try:
             payload = json.loads(msg.payload.decode('utf-8'))
             enabled = payload['enabled']
@@ -111,12 +129,16 @@ class MqttDashboard(Node):
             self.get_logger().warning(f'Ignoring invalid MQTT command: {exc}')
             return
 
+        if msg.topic == f'{self._root_topic}command/estop' and not enabled:
+            self.get_logger().warning('Ignoring remote ESTOP reset; reset must be local.')
+            return
+
         ros_msg = Bool()
         ros_msg.data = enabled
         if msg.topic == f'{self._root_topic}command/estop':
-            self._estop_pub.publish(ros_msg)
+            self._estop_request_pub.publish(ros_msg)
         elif msg.topic == f'{self._root_topic}command/painting':
-            self._painting_pub.publish(ros_msg)
+            self._painting_request_pub.publish(ros_msg)
 
     def _update(self, **values: Any) -> None:
         with self._lock:
@@ -154,6 +176,9 @@ class MqttDashboard(Node):
         })
 
     def _publish_telemetry(self) -> None:
+        if not self._mqtt.is_connected():
+            self._update(online=False)
+            return
         with self._lock:
             snapshot = dict(self._state)
         snapshot['updated_at'] = time.time()

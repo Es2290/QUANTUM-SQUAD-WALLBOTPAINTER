@@ -22,7 +22,7 @@ from typing import Optional
 
 import rclpy
 from rclpy.node import Node
-from std_msgs.msg import Float32MultiArray, Int32MultiArray
+from std_msgs.msg import Bool, Float32, Float32MultiArray, Int32MultiArray
 
 try:
     import serial
@@ -47,6 +47,8 @@ class UARTBridge(Node):
 
         # ---------- Serial port setup ----------
         self._serial_port: Optional[serial.Serial] = None
+        self._estop_active = False
+        self._serial_lock = threading.Lock()
         try:
             self._serial_port = serial.Serial(
                 port=port,
@@ -73,6 +75,8 @@ class UARTBridge(Node):
         self.create_subscription(
             Float32MultiArray, 'motor_rpm_cmd', self._on_motor_cmd, 10
         )
+        self.create_subscription(Bool, 'estop', self._on_estop, 10)
+        self.create_subscription(Float32, 'spray_duty', self._on_spray_duty, 10)
 
         # ---------- RX thread for async reading ----------
         self._rx_thread = threading.Thread(
@@ -89,6 +93,8 @@ class UARTBridge(Node):
 
     def _on_motor_cmd(self, msg: Float32MultiArray) -> None:
         """Send motor RPM commands to ESP32 via UART."""
+        if self._estop_active:
+            return
         if len(msg.data) != 4:
             self.get_logger().warn(
                 f'Expected 4 motor RPM values, got {len(msg.data)}'
@@ -107,9 +113,35 @@ class UARTBridge(Node):
                 f"{msg.data[2]:.1f},"
                 f"{msg.data[3]:.1f}\r\n"
             )
-            self._serial_port.write(frame.encode('utf-8'))
+            with self._serial_lock:
+                self._serial_port.write(frame.encode('utf-8'))
         except (serial.SerialException, OSError) as e:
             self.get_logger().error(f'Failed to send motor command: {e}')
+
+
+    def _on_estop(self, msg: Bool) -> None:
+        """Stop and latch hardware commands until the stack is locally reset."""
+        if not msg.data:
+            return
+        self._estop_active = True
+        if self._serial_port and self._serial_port.is_open:
+            try:
+                with self._serial_lock:
+                    self._serial_port.write(b'STP\r\n')
+            except (serial.SerialException, OSError) as exc:
+                self.get_logger().error(f'Failed to send emergency stop: {exc}')
+
+    def _on_spray_duty(self, msg: Float32) -> None:
+        """Forward the painting controller duty command to the ESP32."""
+        if not self._serial_port or not self._serial_port.is_open:
+            self.get_logger().error('Serial port not open; spray command dropped.')
+            return
+        duty = 0.0 if self._estop_active else max(0.0, min(1.0, float(msg.data)))
+        try:
+            with self._serial_lock:
+                self._serial_port.write(f'SPR {duty:.4f}\r\n'.encode('utf-8'))
+        except (serial.SerialException, OSError) as exc:
+            self.get_logger().error(f'Failed to send spray command: {exc}')
 
     # ------------------------------------------------------------------
     # RX: Encoder data from ESP32

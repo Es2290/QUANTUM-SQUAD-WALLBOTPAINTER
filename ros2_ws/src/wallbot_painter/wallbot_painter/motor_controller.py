@@ -16,7 +16,7 @@ import rclpy
 from rclpy.node import Node
 from geometry_msgs.msg import Twist, Quaternion
 from nav_msgs.msg import Odometry
-from std_msgs.msg import Float32MultiArray, Int32MultiArray
+from std_msgs.msg import Bool, Float32MultiArray, Int32MultiArray
 from std_srvs.srv import Empty
 
 
@@ -64,6 +64,7 @@ class MotorController(Node):
         self._last_time = self.get_clock().now()
         
         # PID state for closed-loop control
+        self._estop_active = False
         self._rpm_cmd: list[float] = [0.0] * NUM_MOTORS  # desired RPM
         self._rpm_actual: list[float] = [0.0] * NUM_MOTORS  # measured RPM
         self._pid_error_integral: list[float] = [0.0] * NUM_MOTORS
@@ -77,6 +78,7 @@ class MotorController(Node):
 
         # ---------- Subscribers ----------
         self.create_subscription(Twist, 'cmd_vel', self._cmd_vel_callback, 10)
+        self.create_subscription(Bool, 'estop', self._estop_callback, 10)
         self.create_subscription(
             Int32MultiArray, 'encoder_ticks', self._encoder_callback, 10
         )
@@ -90,7 +92,19 @@ class MotorController(Node):
     # Velocity command → individual wheel RPM
     # ------------------------------------------------------------------
 
+    def _estop_callback(self, msg: Bool) -> None:
+        if not msg.data:
+            return  # E-stop remains latched until the stack is locally reset.
+        self._estop_active = True
+        self._rpm_cmd = [0.0] * NUM_MOTORS
+        cmd = Float32MultiArray()
+        cmd.data = [0.0] * NUM_MOTORS
+        self._motor_cmd_pub.publish(cmd)
+        self.get_logger().error('ESTOP active; motor commands are blocked.')
+
     def _cmd_vel_callback(self, msg: Twist) -> None:
+        if self._estop_active:
+            return
         v = msg.linear.x   # m/s — forward
         w = msg.angular.z  # rad/s — yaw rate
 

@@ -32,12 +32,15 @@
   </section>
 </main>
 <script>
-  const $ = id => document.getElementById(id), broker = localStorage.getItem('wallbotBroker') || $('broker').value;
+  const $ = id => document.getElementById(id);
+  const robotId = new URLSearchParams(location.search).get('robot_id') || 'wallbot';
+  const telemetryTopic = robotId + '/telemetry';
+  const broker = localStorage.getItem('wallbotBroker') || $('broker').value;
   $('broker').value = broker; $('broker').addEventListener('change', e => localStorage.setItem('wallbotBroker', e.target.value));
   const client = mqtt.connect(broker, { reconnectPeriod: 3000, clientId: 'wallbot-dashboard-' + Math.random().toString(16).slice(2) });
-  const command = (name, enabled) => client.publish('wallbot/command/' + name, JSON.stringify({enabled}), {qos:1});
+  const command = (name, enabled) => client.publish(robotId + '/command/' + name, JSON.stringify({enabled}), {qos:1});
   $('estop').onclick=()=>command('estop',true); $('paintOn').onclick=()=>command('painting',true); $('paintOff').onclick=()=>command('painting',false);
-  client.on('connect', () => { $('dot').classList.add('online'); $('connection').textContent='Connected'; client.subscribe('wallbot/telemetry'); });
+  client.on('connect', () => { $('dot').classList.add('online'); $('connection').textContent='Connected'; client.subscribe(telemetryTopic); });
   client.on('close', () => { $('dot').classList.remove('online'); $('connection').textContent='Disconnected'; });
-  client.on('message', (_, payload) => { const s=JSON.parse(payload); const pct=s.battery_percent ?? 0; $('battery').innerHTML=(s.battery_voltage ?? '--').toFixed ? s.battery_voltage.toFixed(2)+' <span class="unit">V</span>' : '-- <span class="unit">V</span>'; $('batteryBar').style.width=pct+'%'; $('batteryStatus').textContent=pct.toFixed(0)+'% charge'; $('speed').innerHTML=(s.velocity?.linear_x ?? 0).toFixed(2)+' <span class="unit">m/s</span>'; $('direction').textContent=(s.velocity?.angular_z ?? 0).toFixed(2)+' rad/s yaw'; $('safety').textContent=s.estop?'STOP':'READY'; $('safetyStatus').textContent=s.slip_detected?'Slip detected':'All systems nominal'; $('safetyStatus').className='status '+(s.estop||s.slip_detected?'bad':'good'); $('painting').textContent=s.painting_active?'ON':'OFF'; $('paintingStatus').textContent=s.painting_active?'Spraying':'Standby'; $('paintingStatus').className='status '+(s.painting_active?'good':''); });
+  client.on('message', (topic, payload) => { if (topic !== telemetryTopic) return; const s=JSON.parse(payload); const pct=s.battery_percent ?? 0; $('battery').innerHTML=(s.battery_voltage ?? '--').toFixed ? s.battery_voltage.toFixed(2)+' <span class="unit">V</span>' : '-- <span class="unit">V</span>'; $('batteryBar').style.width=pct+'%'; $('batteryStatus').textContent=pct.toFixed(0)+'% charge'; $('speed').innerHTML=(s.velocity?.linear_x ?? 0).toFixed(2)+' <span class="unit">m/s</span>'; $('direction').textContent=(s.velocity?.angular_z ?? 0).toFixed(2)+' rad/s yaw'; $('safety').textContent=s.estop?'STOP':'READY'; $('safetyStatus').textContent=s.slip_detected?'Slip detected':'All systems nominal'; $('safetyStatus').className='status '+(s.estop||s.slip_detected?'bad':'good'); $('painting').textContent=s.painting_active?'ON':'OFF'; $('paintingStatus').textContent=s.painting_active?'Spraying':'Standby'; $('paintingStatus').className='status '+(s.painting_active?'good':''); });
 </script></body></html>

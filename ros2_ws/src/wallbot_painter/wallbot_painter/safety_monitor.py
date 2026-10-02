@@ -45,7 +45,7 @@ class SafetyMonitor(Node):
         self._battery_voltage: float = self._nominal_voltage
         self._rth_triggered: bool = False
         self._estop_triggered: bool = False
-        self._painting_on: bool = True
+        self._painting_on: bool = False
         self._slip_duration: float = 0.0  # seconds of continuous slip
 
         # Publishers
@@ -56,13 +56,17 @@ class SafetyMonitor(Node):
         # Subscribers
         self.create_subscription(Float32, 'battery_voltage', self._battery_callback, 10)
         self.create_subscription(Bool, 'slip_detected', self._slip_callback, 10)
+        self.create_subscription(Bool, 'estop_request', self._estop_request_callback, 10)
+        self.create_subscription(
+            Bool, 'painting_request', self._painting_request_callback, 10
+        )
 
         # Monitoring loop at 5 Hz
         self._timer = self.create_timer(0.2, self._monitor_loop)
         self._slip_timer_dt: float = 0.2  # seconds per monitor tick
 
-        # Publish initial state — painting enabled, no emergencies
-        self._publish_painting(True)
+        # Start with spraying disabled; explicit requests enable it.
+        self._publish_painting(False)
 
         self.get_logger().info(
             f'SafetyMonitor started — RTH@{self._rth_voltage}V, '
@@ -81,6 +85,26 @@ class SafetyMonitor(Node):
             self._slip_duration += self._slip_timer_dt
         else:
             self._slip_duration = 0.0
+
+    def _estop_request_callback(self, msg: Bool) -> None:
+        if not msg.data or self._estop_triggered:
+            return
+        self.get_logger().error('Remote emergency stop requested.')
+        self._estop_triggered = True
+        self._publish_estop(True)
+        self._publish_painting(False)
+        self._publish_rth(False)
+
+    def _painting_request_callback(self, msg: Bool) -> None:
+        if not msg.data:
+            self._publish_painting(False)
+            return
+        if self._estop_triggered or self._rth_triggered:
+            self.get_logger().warning(
+                'Painting enable request rejected while safety stop or RTH is active.'
+            )
+            return
+        self._publish_painting(True)
 
     # ------------------------------------------------------------------
     # Monitor loop

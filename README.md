@@ -87,13 +87,16 @@ Install the MQTT client and start a broker with WebSockets enabled:
 
 ```bash
 python3 -m pip install paho-mqtt
-ros2 launch wallbot_painter wallbot.launch.py enable_mqtt:=true mqtt_host:=localhost mqtt_port:=1883
+ros2 launch wallbot_painter wallbot.launch.py enable_mqtt:=true enable_uart:=true mqtt_host:=localhost mqtt_port:=1883
 ```
 
 Open the installed `dashboard/index.html` in a browser and set its WebSocket
-broker URL (for example `ws://localhost:9001/mqtt`). The browser uses MQTT
-over WebSockets, so the broker must expose a WebSocket listener separately
-from its TCP listener.
+broker URL (for example `ws://localhost:9001/mqtt`). If `robot_id` differs from
+`wallbot`, open the page with `?robot_id=<id>`. The browser uses MQTT over
+WebSockets, so the broker must expose a WebSocket listener separately from its
+TCP listener. MQTT paint and E-stop requests are arbitrated by `safety_monitor`;
+remote E-stop reset is rejected. The physical UART bridge is optional and is
+enabled above with `enable_uart:=true` (change `uart_port` if needed).
 
 ### Firmware ESP32
 
